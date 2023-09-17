@@ -18,9 +18,6 @@ public class Currency {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "currency_name", nullable = false)
-    private String name;
-
     @Column(name = "currency_code", nullable = false)
     private String code;
 }

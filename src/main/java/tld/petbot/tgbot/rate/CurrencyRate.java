@@ -31,8 +31,11 @@ public class CurrencyRate {
     @JoinColumn(name = "currency_id", nullable = false)
     private Currency currency;
 
-    @Column(name = "currency_rate", nullable = false)
-    private BigDecimal rate;
+    @Column(name = "currency_buy", nullable = false)
+    private BigDecimal buy;
+
+    @Column(name = "currency_sale", nullable = false)
+    private BigDecimal sale;
 
     @Column(name = "exchange_date", nullable = false)
     private Date date;
