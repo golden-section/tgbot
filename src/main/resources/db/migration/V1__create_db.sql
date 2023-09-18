@@ -11,10 +11,12 @@ CREATE TABLE IF NOT EXISTS currency (
 
 CREATE TABLE IF NOT EXISTS currency_rate (
     id UUID PRIMARY KEY,
-    currency_rate DECIMAL NOT NULL,
-    exchange_date DATE DEFAULT CURRENT_DATE,
     bank_id UUID,
-    FOREIGN KEY (bank_id) REFERENCES bank (id),
     currency_id UUID,
+    currency_buy DECIMAL NOT NULL,
+    currency_sale DECIMAL NOT NULL,
+    exchange_date DATE DEFAULT CURRENT_DATE,
+    FOREIGN KEY (bank_id) REFERENCES bank (id),
     FOREIGN KEY (currency_id) REFERENCES currency (id)
 );
+
