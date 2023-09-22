@@ -5,7 +5,6 @@ CREATE TABLE IF NOT EXISTS bank (
 
 CREATE TABLE IF NOT EXISTS currency (
     id UUID PRIMARY KEY,
-    currency_name VARCHAR(10) UNIQUE NOT NULL,
     currency_code VARCHAR(3) UNIQUE NOT NULL CHECK(LENGTH(currency_code) = 3)
 );
 

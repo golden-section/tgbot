@@ -1,33 +1,32 @@
 package tld.petbot.tgbot.bankServices;
 
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
+import org.springframework.stereotype.Service;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 import tld.petbot.tgbot.Date.DateFormat;
-import tld.petbot.tgbot.bank.Bank;
-import tld.petbot.tgbot.bank.BankRepository;
-import tld.petbot.tgbot.currency.Currency;
-import tld.petbot.tgbot.currency.CurrencyRepository;
+import tld.petbot.tgbot.bank.BankService;
+import tld.petbot.tgbot.currency.CurrencyService;
 import tld.petbot.tgbot.rate.CurrencyRate;
-import tld.petbot.tgbot.rate.CurrencyRateRepository;
+import tld.petbot.tgbot.rate.CurrencyRateService;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @AllArgsConstructor
-public class PrivatBankService implements BankService {
-    private final CurrencyRepository currencyRepository;
-    private final BankRepository bankRepository;
-    private final CurrencyRateRepository currencyRateRepository;
+public class PrivatBankService implements BankInterface {
+    private BankService bankService;
+    private CurrencyService currencyService;
+    private CurrencyRateService currencyRateService;
 
     private static final String PRIVAT_URL_1 = "https://api.privatbank.ua/p24api/pubinfo?exchange&coursid=11";
     private static final String PRIVAT_URL_2 = "https://api.privatbank.ua/p24api/pubinfo?exchange&coursid=12";
@@ -39,32 +38,25 @@ public class PrivatBankService implements BankService {
     }
 
     @Override
-    public void saveCurrencyRateFromJson(String strURL) {
-        try {
-            URL url = URI.create(strURL).toURL();
-            JSONArray jsonArray = new JSONArray(IOUtils.toString(url, StandardCharsets.UTF_8));
+    @SneakyThrows
+    public List<CurrencyRate> saveCurrencyRateFromJson(String strURL) {
+        List<CurrencyRate> currencyRateList = new ArrayList<>();
 
-            Bank bank = bankRepository.findBankByName("PrivatBank");
+        URL url = URI.create(strURL).toURL();
+        JSONArray jsonArray = new JSONArray(IOUtils.toString(url, StandardCharsets.UTF_8));
 
-            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject json = jsonArray.getJSONObject(i);
 
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject json = jsonArray.getJSONObject(i);
+            CurrencyRate currencyRate = currencyRateService.createCurrencyRate(
+                    bankService.createBank("PrivatBank"),
+                    currencyService.createCurrency(json.getString("ccy")),
+                    new BigDecimal(json.getString("buy")),
+                    new BigDecimal(json.getString("sale")),
+                    DateFormat.parseDate(String.valueOf(LocalDateTime.now())));
 
-                Currency currency = new Currency();
-                currency.setCode(json.getString("ccy"));
-                currencyRepository.save(currency);
-
-                CurrencyRate currencyRate = new CurrencyRate();
-                currencyRate.setBank(bank);
-                currencyRate.setCurrency(currency);
-                currencyRate.setBuy(new BigDecimal(json.getString("buy")));
-                currencyRate.setSale(new BigDecimal(json.getString("sale")));
-                currencyRate.setDate(DateFormat.parseDate(String.valueOf(LocalDateTime.now()), sdf));
-                currencyRateRepository.save(currencyRate);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            currencyRateList.add(currencyRate);
         }
+        return currencyRateList;
     }
 }

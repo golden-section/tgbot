@@ -2,9 +2,12 @@ package tld.petbot.tgbot.Date;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class DateFormat {
-    public static java.util.Date parseDate(String dateStr, SimpleDateFormat sdf) {
+    public static Date parseDate(String dateStr) {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
+
         try {
             return sdf.parse(dateStr);
         } catch (ParseException e) {

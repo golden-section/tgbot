@@ -1,33 +1,31 @@
 package tld.petbot.tgbot.bankServices;
 
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import tld.petbot.tgbot.Date.DateFormat;
-import tld.petbot.tgbot.bank.Bank;
-import tld.petbot.tgbot.bank.BankRepository;
-import tld.petbot.tgbot.currency.Currency;
-import tld.petbot.tgbot.currency.CurrencyRepository;
+import tld.petbot.tgbot.bank.BankService;
+import tld.petbot.tgbot.currency.CurrencyService;
 import tld.petbot.tgbot.rate.CurrencyRate;
-import tld.petbot.tgbot.rate.CurrencyRateRepository;
+import tld.petbot.tgbot.rate.CurrencyRateService;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @AllArgsConstructor
-public class NbuService implements BankService {
-    private final CurrencyRepository currencyRepository;
-    private final BankRepository bankRepository;
-    private final CurrencyRateRepository currencyRateRepository;
+public class NbuService implements BankInterface {
+    private CurrencyService currencyService;
+    private BankService bankService;
+    private CurrencyRateService currencyRateService;
 
     private static final String NBU_URL = "https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json";
 
@@ -38,34 +36,27 @@ public class NbuService implements BankService {
     }
 
     @Override
-    public void saveCurrencyRateFromJson(String strURL) {
-        try {
-            URL url = URI.create(strURL).toURL();
-            JSONArray jsonArray = new JSONArray(IOUtils.toString(url, StandardCharsets.UTF_8));
+    @SneakyThrows
+    public List<CurrencyRate> saveCurrencyRateFromJson(String strURL) {
+        List<CurrencyRate> currencyRateList = new ArrayList<>();
 
-            Bank bank = bankRepository.findBankByName("NBUBank");
+        URL url = URI.create(strURL).toURL();
+        JSONArray jsonArray = new JSONArray(IOUtils.toString(url, StandardCharsets.UTF_8));
 
-            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject json = jsonArray.getJSONObject(i);
 
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject json = jsonArray.getJSONObject(i);
+            CurrencyRate currencyRate = currencyRateService.createCurrencyRate(
+                    bankService.createBank("NBUBank"),
+                    currencyService.createCurrency(json.getString("currency")),
+                    new BigDecimal(json.getString("rate")),
+                    new BigDecimal(json.getString("rate")),
+                    DateFormat.parseDate(json.getString("exchangedate")));
 
-                Currency currency = new Currency();
-                currency.setCode(json.getString("currency"));
-                currencyRepository.save(currency);
-
-                CurrencyRate currencyRate = new CurrencyRate();
-                currencyRate.setBank(bank);
-                currencyRate.setCurrency(currency);
-                currencyRate.setBuy(new BigDecimal(json.getString("rate")));
-                currencyRate.setSale(new BigDecimal(json.getString("rate")));
-                currencyRate.setDate(DateFormat.parseDate(json.getString("exchangedate"), sdf));
-                currencyRateRepository.save(currencyRate);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            currencyRateList.add(currencyRate);
         }
+        return currencyRateList;
     }
-
-
 }
+
+
